@@ -1,0 +1,2 @@
+GET /products 304 - - 4.034 ms
+GET /products 304 - - 0.884 ms
