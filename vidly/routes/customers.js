@@ -1,8 +1,6 @@
 const express = require("express");
-const Joi = require("joi");
 
-const Customer = require("../schemaModels/customer");
-const phoneRegex = require("../constants/regex-constants").phoneRegex;
+const { Customer, validateCustomer } = require("../schemaModels/customer");
 
 const customersRouter = express.Router();
 
@@ -69,15 +67,5 @@ customersRouter.delete("/:id", async (req, res) => {
 
 	res.send(customer);
 });
-
-function validateCustomer(customer) {
-	const schema = {
-		name: Joi.string().min(3).max(100).required(),
-		phone: Joi.string().regex(phoneRegex).required(),
-		isGold: Joi.boolean(),
-	};
-
-	return Joi.validate(customer, schema);
-}
 
 module.exports = customersRouter;

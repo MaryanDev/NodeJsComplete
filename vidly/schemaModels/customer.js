@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
+const Joi = require("joi");
 
-const phoneRegex = require("../constants/regex-constants").phoneRegex;
+const { phoneRegex } = require("../constants/regex-constants");
 
-module.exports = mongoose.model(
+module.exports.Customer = mongoose.model(
 	"Customer",
 	new mongoose.Schema({
 		isGold: {
@@ -23,3 +24,13 @@ module.exports = mongoose.model(
 		},
 	})
 );
+
+module.exports.validateCustomer = function (customer) {
+	const schema = {
+		name: Joi.string().min(3).max(100).required(),
+		phone: Joi.string().regex(phoneRegex).required(),
+		isGold: Joi.boolean(),
+	};
+
+	return Joi.validate(customer, schema);
+};
