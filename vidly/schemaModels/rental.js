@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Joi = require("joi");
+// Joi.objectId = require("joi-objectid")(Joi);
 const { phoneRegex } = require("../constants/regex-constants");
 
 module.exports.Rental = mongoose.model(
@@ -57,8 +58,8 @@ module.exports.Rental = mongoose.model(
 
 module.exports.validateRental = function (rental) {
 	const schema = {
-		customerId: Joi.string().required(),
-		movieId: Joi.string().required(),
+		customerId: Joi.objectId().required(),
+		movieId: Joi.objectId().required(),
 	};
 
 	return Joi.validate(rental, schema);
