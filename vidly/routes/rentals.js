@@ -1,9 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Fawn = require("fawn");
+
 const { Rental, validateRental } = require("../schemaModels/rental");
 const { Customer } = require("../schemaModels/customer");
 const { Movie } = require("../schemaModels/movie");
+const auth = require("../middleware/auth");
 
 const rentalRouter = express.Router();
 
@@ -14,7 +16,7 @@ rentalRouter.get("/", async (req, res) => {
 	return res.send(rentals);
 });
 
-rentalRouter.post("/", async (req, res) => {
+rentalRouter.post("/", auth, async (req, res) => {
 	const { error } = validateRental(req.body);
 	if (error) return res.status(400).send(error.details[0].message);
 
