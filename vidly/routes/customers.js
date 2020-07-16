@@ -1,4 +1,5 @@
 const express = require("express");
+const _ = require("lodash");
 
 const { Customer, validateCustomer } = require("../schemaModels/customer");
 const auth = require("../middleware/auth");
@@ -23,11 +24,7 @@ customersRouter.post("/", auth, async (req, res) => {
 	const { error } = validateCustomer(req.body);
 	if (error) return res.status(400).send(error.details[0].message);
 
-	const customer = new Customer({
-		isGold: req.body.isGold,
-		name: req.body.name,
-		phone: req.body.phone,
-	});
+	const customer = new Customer(_.pick(req.body, ["isGold", "name", "phone"]));
 
 	await customer.save();
 	res.send(customer);
