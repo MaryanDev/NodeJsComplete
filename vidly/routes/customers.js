@@ -3,6 +3,7 @@ const _ = require("lodash");
 
 const { Customer, validateCustomer } = require("../schemaModels/customer");
 const auth = require("../middleware/auth");
+const validateObjectId = require("../middleware/validateObjectId");
 
 const customersRouter = express.Router();
 
@@ -11,7 +12,7 @@ customersRouter.get("/", async (req, res) => {
 	res.send(customers);
 });
 
-customersRouter.get("/:id", async (req, res) => {
+customersRouter.get("/:id", validateObjectId, async (req, res) => {
 	const customer = await Customer.findById(req.params.id);
 	if (!customer) {
 		return res.status(404).send("Customer with a given id was not found.");
@@ -30,7 +31,7 @@ customersRouter.post("/", auth, async (req, res) => {
 	res.send(customer);
 });
 
-customersRouter.put("/:id", auth, async (req, res) => {
+customersRouter.put("/:id", [auth, validateObjectId], async (req, res) => {
 	const { error } = validateCustomer(req.body);
 	if (error) return res.status(400).send(error.details[0].message);
 
@@ -55,7 +56,7 @@ customersRouter.put("/:id", auth, async (req, res) => {
 	res.send(customer);
 });
 
-customersRouter.delete("/:id", auth, async (req, res) => {
+customersRouter.delete("/:id", [auth, validateObjectId], async (req, res) => {
 	const customer = await Customer.findByIdAndRemove(req.params.id);
 	if (!customer) {
 		return res
