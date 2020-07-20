@@ -73,7 +73,7 @@ describe("/api/genres", () => {
 		});
 
 		it("should return 400 if genre is less than 5 characters long", async () => {
-			name = "1234";
+			name = "abcd";
 			const res = await exec();
 			expect(res.status).toBe(400);
 		});
