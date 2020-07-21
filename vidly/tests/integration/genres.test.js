@@ -1,4 +1,5 @@
 const request = require("supertest");
+const mongoose = require("mongoose");
 const { Genre } = require("../../schemaModels/genre");
 const { User } = require("../../schemaModels/user");
 
@@ -9,10 +10,64 @@ describe("/api/genres", () => {
 	beforeEach(() => {
 		server = require("../../index");
 	});
+
 	afterEach(async () => {
 		await Genre.remove({});
 		server.close();
 	});
+
+	let token;
+	let name;
+	let _id;
+
+	const noAuthTest = async (exec) => {
+		token = "";
+		const res = await exec();
+		expect(res.status).toBe(401);
+	};
+
+	const minLengthTest = async (exec) => {
+		name = "abcd";
+		const res = await exec();
+		expect(res.status).toBe(400);
+	};
+
+	const maxLengthTest = async (exec) => {
+		name = new Array(52).join("a");
+		const res = await exec();
+		expect(res.status).toBe(400);
+	};
+
+	const noNameTest = async (exec) => {
+		name = undefined;
+		const res = await exec();
+		expect(res.status).toBe(400);
+	};
+
+	const nameNotAStringTest = async (exec) => {
+		name = { test: 2 };
+		const res = await exec();
+		expect(res.status).toBe(400);
+	};
+
+	const resBodyTest = async (exec) => {
+		const res = await exec();
+
+		expect(res.body).toHaveProperty("_id");
+		expect(res.body).toMatchObject({ name: name });
+	};
+
+	const invalidIdTest = async (exec) => {
+		_id = 1;
+		const res = await exec();
+		expect(res.status).toBe(404);
+	};
+
+	const validIdButNoMatchTest = async (exec) => {
+		_id = mongoose.Types.ObjectId();
+		const res = await exec();
+		expect(res.status).toBe(404);
+	};
 
 	describe("GET /", () => {
 		it("should return all genres", async () => {
@@ -32,6 +87,13 @@ describe("/api/genres", () => {
 	describe("GET /:id", () => {
 		it("should return 404 with invalid id", async () => {
 			const res = await request(server).get(`${genresRoute}/3`);
+			expect(res.status).toBe(404);
+		});
+
+		it("should return 404 with valid id but no matched document", async () => {
+			const res = await request(server).get(
+				`${genresRoute}/${mongoose.Types.ObjectId()}`
+			);
 			expect(res.status).toBe(404);
 		});
 
@@ -56,9 +118,6 @@ describe("/api/genres", () => {
 			name = "genre1";
 		});
 
-		let token;
-		let name;
-
 		const exec = async () => {
 			return await request(server)
 				.post(genresRoute)
@@ -67,33 +126,23 @@ describe("/api/genres", () => {
 		};
 
 		it("should return 401 if user is not logged in", async () => {
-			token = "";
-			const res = await exec();
-			expect(res.status).toBe(401);
+			await noAuthTest(exec);
 		});
 
 		it("should return 400 if genre is less than 5 characters long", async () => {
-			name = "abcd";
-			const res = await exec();
-			expect(res.status).toBe(400);
+			await minLengthTest(exec);
 		});
 
 		it("should return 400 if genre is more than 50 characters long", async () => {
-			name = new Array(52).join("a");
-			const res = await exec();
-			expect(res.status).toBe(400);
+			await maxLengthTest(exec);
 		});
 
 		it("should return 400 if genre name is not provided", async () => {
-			name = undefined;
-			const res = await exec();
-			expect(res.status).toBe(400);
+			await noNameTest(exec);
 		});
 
 		it("should return 400 if genre name not a string", async () => {
-			name = { test: 2 };
-			const res = await exec();
-			expect(res.status).toBe(400);
+			await nameNotAStringTest(exec);
 		});
 
 		it("should create genre if it is valid", async () => {
@@ -103,25 +152,104 @@ describe("/api/genres", () => {
 		});
 
 		it("should return genre in the response body", async () => {
+			await resBodyTest(exec);
+		});
+	});
+
+	describe("PUT /:id", () => {
+		beforeEach(async () => {
+			token = new User().genAuthToken();
+			name = "genre1";
+			_id = (await Genre.collection.insertOne({ name: "genre2" })).insertedId;
+		});
+
+		const exec = async () => {
+			return await request(server)
+				.put(`${genresRoute}/${_id}`)
+				.set("x-auth-token", token)
+				.send({ name });
+		};
+
+		it("should return 401 if user is not logged in", async () => {
+			await noAuthTest(exec);
+		});
+
+		it("should return 404 if id is invalid", async () => {
+			await invalidIdTest(exec);
+		});
+
+		it("should return 404 if id is valid but not objects found", async () => {
+			await validIdButNoMatchTest(exec);
+		});
+
+		it("should return 400 if genre is less than 5 characters long", async () => {
+			await minLengthTest(exec);
+		});
+
+		it("should return 400 if genre is more than 50 characters long", async () => {
+			await maxLengthTest(exec);
+		});
+
+		it("should return 400 if genre name is not provided", async () => {
+			await noNameTest(exec);
+		});
+
+		it("should return 400 if genre name not a string", async () => {
+			await nameNotAStringTest(exec);
+		});
+
+		it("should update genre if it is valid", async () => {
+			await exec();
+			const genre = await Genre.findById(_id);
+			expect(genre.name).toBe(name);
+		});
+
+		it("should return genre in the response body", async () => {
+			await resBodyTest(exec);
+		});
+	});
+
+	describe("DELETE /:id", () => {
+		beforeEach(async () => {
+			token = new User({ isAdmin: true }).genAuthToken();
+			_id = (await Genre.collection.insertOne({ name: "genre1" })).insertedId;
+		});
+
+		const exec = async () => {
+			return await request(server)
+				.delete(`${genresRoute}/${_id}`)
+				.set("x-auth-token", token);
+		};
+
+		it("should return 401 if user is not logged in", async () => {
+			await noAuthTest(exec);
+		});
+
+		it("should return 403 if user is not an admin", async () => {
+			token = new User().genAuthToken();
+
 			const res = await exec();
 
-			expect(res.body).toHaveProperty("_id");
-			expect(res.body).toMatchObject({ name: "genre1" });
+			expect(res.status).toBe(403);
+		});
+
+		it("should return 404 if id is invalid", async () => {
+			await invalidIdTest(exec);
+		});
+
+		it("should return 404 if id is valid but not objects found", async () => {
+			await validIdButNoMatchTest(exec);
+		});
+
+		it("should delete genre if id is valid", async () => {
+			await exec();
+
+			const genre = await Genre.findById(_id);
+			expect(genre).toBeNull();
+		});
+
+		it("should return genre in the response body", async () => {
+			await resBodyTest(exec);
 		});
 	});
 });
-
-async function expectBadPost(body) {
-	const res = await sendAuthPost(body);
-
-	expect(res.status).toBe(400);
-}
-
-async function sendAuthPost(body) {
-	const token = new User().genAuthToken();
-
-	return await request(server)
-		.post(genresRoute)
-		.set("x-auth-token", token)
-		.send(body);
-}
