@@ -1,5 +1,6 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
+
 const { Genre } = require("../../schemaModels/genre");
 const { User } = require("../../schemaModels/user");
 
@@ -13,7 +14,7 @@ describe("/api/genres", () => {
 
 	afterEach(async () => {
 		await Genre.remove({});
-		server.close();
+		await server.close();
 	});
 
 	let token;
