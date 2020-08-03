@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --watchAll --verbose --runInBand",
+    "test": "jest --verbose --runInBand",
     "start": "node index"
   },
   "engines": {
@@ -17,6 +17,7 @@
     "bcrypt": "^5.0.0",
     "compression": "^1.7.4",
     "config": "^3.3.1",
+    "cors": "^2.8.5",
     "express": "^4.16.2",
     "express-async-errors": "^3.1.1",
     "fawn": "^2.1.5",
